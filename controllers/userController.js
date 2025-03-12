@@ -42,3 +42,39 @@ export const updateUserRole = async (req, res) => {
       res.status(500).json({ message: 'Something went wrong' });
     }
 };
+
+// Helper function to get user activity analytics data without requiring req/res
+export const getUserActivityAnalyticsData = async () => {
+    try {
+      const mostActiveUsers = await User.aggregate([
+        {
+          $lookup: {
+            from: 'events',
+            localField: '_id',
+            foreignField: 'attendees',
+            as: 'attendedEvents',
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            email: 1,
+            attendedEventsCount: { $size: '$attendedEvents' },
+          },
+        },
+        {
+          $sort: { attendedEventsCount: -1 },
+        },
+        {
+          $limit: 5,
+        },
+      ]);
+  
+      return {
+        mostActiveUsers: mostActiveUsers.length ? mostActiveUsers : [],
+      };
+    } catch (error) {
+      console.error('Error fetching user activity analytics data:', error);
+      throw error;
+    }
+};
